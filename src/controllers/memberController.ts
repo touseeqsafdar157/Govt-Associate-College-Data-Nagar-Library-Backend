@@ -1,150 +1,165 @@
 import { Request, Response } from 'express';
-import { db } from '../config/db';
-import { Member } from '../types';
+import { MemberModel } from '../models/Member';
 
-export const getMembers = (req: Request, res: Response) => {
-  const { search, role, status, department } = req.query;
-  let members = db.get('members');
+export const getMembers = async (req: Request, res: Response) => {
+  try {
+    const { search, role, status, department } = req.query;
+    const filter: any = {};
 
-  if (role) {
-    members = members.filter((m) => m.role.toLowerCase() === String(role).toLowerCase());
+    if (role) filter.role = role;
+    if (status) filter.status = status;
+    if (department) filter.department = new RegExp(`^${department}$`, 'i');
+
+    if (search) {
+      const q = String(search).trim();
+      filter.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { rollNo: { $regex: q, $options: 'i' } },
+        { libraryCardNo: { $regex: q, $options: 'i' } },
+        { email: { $regex: q, $options: 'i' } },
+        { phone: { $regex: q, $options: 'i' } },
+        { classGrade: { $regex: q, $options: 'i' } }
+      ];
+    }
+
+    const members = await MemberModel.find(filter).sort({ createdAt: -1 });
+    return res.json({ success: true, count: members.length, data: members });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
-
-  if (status) {
-    members = members.filter((m) => m.status.toLowerCase() === String(status).toLowerCase());
-  }
-
-  if (department) {
-    members = members.filter((m) => m.department.toLowerCase() === String(department).toLowerCase());
-  }
-
-  if (search) {
-    const q = String(search).toLowerCase().trim();
-    members = members.filter(
-      (m) =>
-        m.name.toLowerCase().includes(q) ||
-        m.rollNo.toLowerCase().includes(q) ||
-        m.libraryCardNo.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q) ||
-        m.phone.includes(q) ||
-        m.classGrade.toLowerCase().includes(q)
-    );
-  }
-
-  return res.json({ success: true, count: members.length, data: members });
 };
 
-export const getMemberById = (req: Request, res: Response) => {
-  const { id } = req.params;
-  const members = db.get('members');
-  const member = members.find(
-    (m) => m.id === id || m.rollNo.toLowerCase() === id.toLowerCase() || m.libraryCardNo.toLowerCase() === id.toLowerCase()
-  );
+export const getMemberById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    let member = null;
 
-  if (!member) {
-    return res.status(404).json({ success: false, message: 'Member not found' });
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      member = await MemberModel.findById(id);
+    }
+    if (!member) {
+      member = await MemberModel.findOne({
+        $or: [{ rollNo: id.toUpperCase() }, { libraryCardNo: id.toUpperCase() }]
+      });
+    }
+
+    if (!member) {
+      return res.status(404).json({ success: false, message: 'Member not found in database' });
+    }
+
+    return res.json({ success: true, data: member });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
-
-  return res.json({ success: true, data: member });
 };
 
-export const createMember = (req: Request, res: Response) => {
-  const memberData: Partial<Member> = req.body;
+export const createMember = async (req: Request, res: Response) => {
+  try {
+    const memberData = req.body;
 
-  if (!memberData.rollNo || !memberData.name) {
-    return res.status(400).json({ success: false, message: 'Roll No and Full Name are required.' });
+    if (!memberData.rollNo || !memberData.name) {
+      return res.status(400).json({ success: false, message: 'Roll No and Full Name are required.' });
+    }
+
+    const roll = memberData.rollNo.toUpperCase().trim();
+    const existing = await MemberModel.findOne({ rollNo: roll });
+    if (existing) {
+      return res.status(400).json({ success: false, message: `Member with Roll No "${roll}" is already registered!` });
+    }
+
+    const newMember = await MemberModel.create({
+      ...memberData,
+      rollNo: roll,
+      email: memberData.email || `${roll.toLowerCase().replace(/[^a-z0-9]/g, '')}@gacdn.edu.pk`,
+      phone: memberData.phone || '0300-0000000',
+      maxAllowedBooks: memberData.role === 'teacher' ? 5 : 2,
+      issuedBooksCount: 0,
+      libraryCardNo: memberData.libraryCardNo || `LIB-DN-${Math.floor(1000 + Math.random() * 9000)}`
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `Member ${newMember.name} (${newMember.rollNo}) registered successfully in MongoDB.`,
+      data: newMember
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
-
-  const members = db.get('members');
-  const existing = members.find((m) => m.rollNo.toLowerCase() === memberData.rollNo?.toLowerCase());
-  if (existing) {
-    return res.status(400).json({ success: false, message: `Member with Roll No "${memberData.rollNo}" is already registered!` });
-  }
-
-  const newMember: Member = {
-    id: `m-${Date.now()}`,
-    rollNo: memberData.rollNo,
-    name: memberData.name,
-    fatherName: memberData.fatherName || '',
-    role: (memberData.role as any) || 'student',
-    email: memberData.email || `${memberData.rollNo.toLowerCase().replace(/[^a-z0-9]/g, '')}@gacdn.edu.pk`,
-    phone: memberData.phone || '0300-0000000',
-    classGrade: memberData.classGrade || '1st Year (General)',
-    section: memberData.section || 'Section A',
-    shift: (memberData.shift as any) || 'Morning',
-    department: memberData.department || 'General',
-    status: (memberData.status as any) || 'Active',
-    issuedBooksCount: 0,
-    maxAllowedBooks: memberData.role === 'teacher' ? 5 : 2,
-    joinedDate: memberData.joinedDate || new Date().toISOString().split('T')[0],
-    libraryCardNo: memberData.libraryCardNo || `LIB-DN-${Math.floor(1000 + Math.random() * 9000)}`
-  };
-
-  db.update('members', (current) => [newMember, ...current]);
-
-  return res.status(201).json({
-    success: true,
-    message: `Member ${newMember.name} (${newMember.rollNo}) registered successfully.`,
-    data: newMember
-  });
 };
 
-export const updateMember = (req: Request, res: Response) => {
-  const { id } = req.params;
-  const updateData: Partial<Member> = req.body;
-  const members = db.get('members');
-  const index = members.findIndex((m) => m.id === id);
+export const updateMember = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    let updated = null;
 
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Member not found' });
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      updated = await MemberModel.findByIdAndUpdate(id, req.body, { new: true });
+    }
+    if (!updated) {
+      updated = await MemberModel.findOneAndUpdate({ rollNo: id.toUpperCase() }, req.body, { new: true });
+    }
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Member not found' });
+    }
+
+    return res.json({
+      success: true,
+      message: `Member "${updated.name}" updated successfully.`,
+      data: updated
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
-
-  const updated: Member = {
-    ...members[index],
-    ...updateData,
-    id: members[index].id
-  };
-
-  db.update('members', (current) => current.map((m) => (m.id === id ? updated : m)));
-
-  return res.json({
-    success: true,
-    message: `Member "${updated.name}" updated successfully.`,
-    data: updated
-  });
 };
 
-export const toggleMemberStatus = (req: Request, res: Response) => {
-  const { id } = req.params;
-  const members = db.get('members');
-  const member = members.find((m) => m.id === id);
+export const toggleMemberStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    let member = null;
 
-  if (!member) {
-    return res.status(404).json({ success: false, message: 'Member not found' });
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      member = await MemberModel.findById(id);
+    }
+    if (!member) {
+      member = await MemberModel.findOne({ rollNo: id.toUpperCase() });
+    }
+
+    if (!member) {
+      return res.status(404).json({ success: false, message: 'Member not found' });
+    }
+
+    member.status = member.status === 'Active' ? 'Blocked' : 'Active';
+    await member.save();
+
+    return res.json({
+      success: true,
+      message: `Member ${member.name} is now ${member.status}.`,
+      data: member
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
-
-  const newStatus = member.status === 'Active' ? 'Blocked' : 'Active';
-  const updated = { ...member, status: newStatus as any };
-
-  db.update('members', (current) => current.map((m) => (m.id === id ? updated : m)));
-
-  return res.json({
-    success: true,
-    message: `Member ${member.name} is now ${newStatus}.`,
-    data: updated
-  });
 };
 
-export const deleteMember = (req: Request, res: Response) => {
-  const { id } = req.params;
-  const members = db.get('members');
-  const exists = members.some((m) => m.id === id);
+export const deleteMember = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    let deleted = null;
 
-  if (!exists) {
-    return res.status(404).json({ success: false, message: 'Member not found' });
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      deleted = await MemberModel.findByIdAndDelete(id);
+    }
+    if (!deleted) {
+      deleted = await MemberModel.findOneAndDelete({ rollNo: id.toUpperCase() });
+    }
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Member not found' });
+    }
+
+    return res.json({ success: true, message: 'Member deleted from college registry.' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
-
-  db.update('members', (current) => current.filter((m) => m.id !== id));
-
-  return res.json({ success: true, message: 'Member deleted from college registry.' });
 };

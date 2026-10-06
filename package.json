@@ -1,14 +1,14 @@
 {
   "name": "library-backend",
   "version": "1.0.0",
-  "description": "Node.js REST API Backend for College Library Management System",
+  "description": "Node.js REST API Backend for College Library Management System with MongoDB",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon --watch src --exec ts-node src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
-  "keywords": ["library", "backend", "express", "nodejs", "typescript"],
+  "keywords": ["library", "backend", "express", "nodejs", "typescript", "mongodb", "mongoose"],
   "author": "College Library Team",
   "license": "ISC",
   "dependencies": {
@@ -16,7 +16,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.3.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

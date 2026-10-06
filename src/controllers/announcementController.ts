@@ -1,39 +1,47 @@
 import { Request, Response } from 'express';
-import { db } from '../config/db';
-import { LibraryAnnouncement } from '../types';
+import { AnnouncementModel } from '../models/Announcement';
 
-export const getAnnouncements = (req: Request, res: Response) => {
-  const announcements = db.get('announcements');
-  return res.json({ success: true, count: announcements.length, data: announcements });
-};
-
-export const createAnnouncement = (req: Request, res: Response) => {
-  const { title, content, category, isUrgent } = req.body;
-
-  if (!title || !content) {
-    return res.status(400).json({ success: false, message: 'Title and Content are required.' });
+export const getAnnouncements = async (req: Request, res: Response) => {
+  try {
+    const announcements = await AnnouncementModel.find().sort({ createdAt: -1 });
+    return res.json({ success: true, count: announcements.length, data: announcements });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
-
-  const newAnn: LibraryAnnouncement = {
-    id: `ann-${Date.now()}`,
-    title,
-    content,
-    category: category || 'Notice',
-    date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-    isUrgent: Boolean(isUrgent)
-  };
-
-  db.update('announcements', (current) => [newAnn, ...current]);
-
-  return res.status(201).json({
-    success: true,
-    message: 'Library notice published successfully.',
-    data: newAnn
-  });
 };
 
-export const deleteAnnouncement = (req: Request, res: Response) => {
-  const { id } = req.params;
-  db.update('announcements', (current) => current.filter((a) => a.id !== id));
-  return res.json({ success: true, message: 'Notice dismissed.' });
+export const createAnnouncement = async (req: Request, res: Response) => {
+  try {
+    const { title, content, category, isUrgent } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({ success: false, message: 'Title and Content are required.' });
+    }
+
+    const newAnn = await AnnouncementModel.create({
+      title,
+      content,
+      category: category || 'Notice',
+      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      isUrgent: Boolean(isUrgent)
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Library notice published successfully to MongoDB.',
+      data: newAnn
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteAnnouncement = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await AnnouncementModel.findByIdAndDelete(id);
+    return res.json({ success: true, message: 'Notice dismissed.' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
