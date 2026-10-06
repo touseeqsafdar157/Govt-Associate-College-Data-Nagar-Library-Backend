@@ -780,3 +780,91 @@ export const INITIAL_SEATS: ReadingRoomSeat[] = Array.from({ length: 60 }, (_, i
     bookedUntil: isOccupied ? '02:30 PM' : undefined
   };
 });
+
+export const INITIAL_SETTINGS = {
+  finePerDay: 5,
+  maxBorrowDaysStudent: 14,
+  maxBorrowDaysTeacher: 30,
+  maxBooksStudent: 2,
+  maxBooksTeacher: 5,
+  timings: 'Mon–Sat: 8:00 AM – 4:00 PM',
+  location: 'Data Nagar, Badami Bagh, Lahore',
+  collegeName: 'Govt Associate College Data Nagar Lahore',
+  contactPhone: '042-99001122',
+  contactEmail: 'library@gacdn.edu.pk',
+  staffMembers: [
+    {
+      name: 'Mr. Rashid Mahmood',
+      designation: 'Chief College Librarian (BS-17)',
+      shift: 'Morning (8:00 AM – 3:30 PM)',
+      desk: 'Circulation & Acquisition Desk',
+      phone: '0300-8484123',
+      email: 'rashid.librarian@gacdn.edu.pk'
+    },
+    {
+      name: 'Mr. Muhammad Imran',
+      designation: 'Assistant Librarian (Cataloging & IT)',
+      shift: 'Morning (8:30 AM – 4:00 PM)',
+      desk: 'E-Library & Classification',
+      phone: '0321-7788990',
+      email: 'imran.library@gacdn.edu.pk'
+    },
+    {
+      name: 'Mr. Asif Ali',
+      designation: 'Library Attendant / Book Binder',
+      shift: 'Morning (8:00 AM – 3:30 PM)',
+      desk: 'Almari Shelf Maintenance & Reading Room Discipline',
+      phone: '0313-4455667',
+      email: 'asif.library@gacdn.edu.pk'
+    }
+  ],
+  libraryRules: [
+    {
+      title: '1. Strict Silence & Decorum',
+      desc: 'Complete silence must be observed inside the library reading hall. Discussions, group chatter, and loud activities are strictly restricted to the outdoor corridor.'
+    },
+    {
+      title: '2. Library Card Mandatory',
+      desc: 'No book shall be issued without a valid College Library Card. Borrowing on another student’s card or roll number is strictly forbidden and subject to card confiscation.'
+    },
+    {
+      title: '3. Student Borrowing Quota (2 Books)',
+      desc: 'Regular enrolled students (ICS, FSc, FA, I.Com, BS) are entitled to borrow a maximum of 2 books simultaneously. Teaching faculty may borrow up to 5 books.'
+    },
+    {
+      title: '4. 14-Day Issuance & Reading Period',
+      desc: 'Books are issued for 14 calendar days. A book may be renewed once for an additional 7 days provided no other student has placed a reservation on it.'
+    },
+    {
+      title: '5. Overdue Fine Rate (Rs. 5 / Day)',
+      desc: 'A fine of Rs. 5 per day per book is levied after the due date. Examination roll number slips and clearance certificates will not be issued until all library dues are settled.'
+    },
+    {
+      title: '6. Damage, Marking & Loss Policy',
+      desc: 'Underlining with pen, dog-earing pages, tearing, or water damage is considered destruction of college property. Lost or damaged books must be replaced with the current edition or paid for at market replacement cost.'
+    },
+    {
+      title: '7. Reference Section & Newspapers',
+      desc: 'Encyclopedias, dictionaries, atlases, current newspapers, and uncataloged journals are strictly for in-library reading and cannot be taken outside the library hall.'
+    },
+    {
+      title: '8. Mobile Phone Policy',
+      desc: 'Cellular phones must be switched to silent mode before entering the library. Answering calls inside the reading hall will lead to immediate ejection.'
+    }
+  ],
+  faqs: [
+    {
+      question: 'How do I get my College Library Card?',
+      answer: 'Library cards are issued free of charge to all enrolled 1st Year, 2nd Year, and BS students upon showing their college admission fee challan and one passport-size photograph at the Librarian Circulation Desk.'
+    },
+    {
+      question: 'What happens if my book is overdue?',
+      answer: 'A standard fine accumulates on each overdue book daily. You can view your current pending fine on the "My Borrowed Books" page by entering your Roll Number. Fines can be paid directly at the circulation counter.'
+    },
+    {
+      question: 'Can I read Reference books at home?',
+      answer: 'No. Encyclopedias, rare historical manuscripts, and dictionaries in Almari #10 are non-issuable. They must be read exclusively in the air-conditioned reading room.'
+    }
+  ]
+};
+

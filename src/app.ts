@@ -14,6 +14,7 @@ import announcementsRoutes from './routes/announcements.routes';
 import suggestionsRoutes from './routes/suggestions.routes';
 import feedbackRoutes from './routes/feedback.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import settingsRoutes from './routes/settings.routes';
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/announcements', announcementsRoutes);
 app.use('/api/suggestions', suggestionsRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

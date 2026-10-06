@@ -81,3 +81,52 @@ export const getMe = async (req: AuthRequest, res: Response) => {
   }
   return res.json({ success: true, user: req.user });
 };
+
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const { username, currentPassword, newPassword, name, email, role } = req.body;
+
+    if (!username) {
+      return res.status(400).json({ success: false, message: 'Username is required.' });
+    }
+
+    const trimmedUsername = username.toLowerCase().trim();
+    let user = await UserModel.findOne({ username: trimmedUsername });
+
+    if (!user) {
+      // If user was using demo fallback, create them in MongoDB now!
+      user = await UserModel.create({
+        username: trimmedUsername,
+        passwordHash: newPassword || currentPassword || 'library@123',
+        name: name || (role === 'admin' ? 'Principal / Admin' : 'Chief Librarian'),
+        role: role || 'librarian',
+        email: email || ''
+      });
+    } else {
+      if (currentPassword && user.passwordHash !== currentPassword) {
+        return res.status(400).json({ success: false, message: 'Current password does not match.' });
+      }
+
+      if (name) user.name = name;
+      if (email !== undefined) user.email = email;
+      if (newPassword) user.passwordHash = newPassword;
+      await user.save();
+    }
+
+    const token = jwt.sign(
+      { id: user.id || user._id, username: user.username, name: user.name, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Account profile & password updated successfully in MongoDB!',
+      token,
+      user: { id: user.id || user._id, username: user.username, name: user.name, role: user.role, email: user.email }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
